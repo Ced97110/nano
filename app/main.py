@@ -89,3 +89,33 @@ app.include_router(ingestion_router)
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "nanobana-backend"}
+
+
+@app.get("/debug/status")
+async def debug_status():
+    """Diagnostic endpoint — shows connectivity status of all services."""
+    redis_ok = False
+    redis_url_set = bool(container._redis)
+    if container._redis:
+        try:
+            await container._redis.ping()
+            redis_ok = True
+        except Exception:
+            pass
+
+    pg_ok = False
+    if container._pg_pool:
+        try:
+            async with container._pg_pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            pg_ok = True
+        except Exception:
+            pass
+
+    from app.infrastructure.config import settings
+    return {
+        "redis": {"connected": redis_ok, "url_configured": redis_url_set, "url_prefix": settings.redis_url[:30] + "..." if len(settings.redis_url) > 30 else settings.redis_url},
+        "postgres": {"connected": pg_ok},
+        "events_type": type(container.events).__name__,
+        "cache_type": type(container.cache).__name__,
+    }
