@@ -37,10 +37,7 @@ services:
           name: nanobana-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          name: nanobana-redis
-          type: redis
-          property: connectionString
+        sync: false  # Create Redis manually in Render dashboard, paste connection string here
 
 databases:
   - name: nanobana-db
@@ -50,11 +47,3 @@ databases:
     region: oregon
     postgresMajorVersion: "16"
     ipAllowList: []
-    initialDatabases:
-      - name: nanobana
-
-  - name: nanobana-redis
-    plan: starter
-    region: oregon
-    type: redis
-    maxmemoryPolicy: allkeys-lru
