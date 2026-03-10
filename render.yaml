@@ -41,7 +41,7 @@ services:
 
 databases:
   - name: nanobana-db
-    plan: basic_256mb
+    plan: basic-256mb
     databaseName: nanobana
     user: nanobana
     region: oregon
