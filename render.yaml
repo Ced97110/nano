@@ -31,7 +31,7 @@ services:
       - key: CLERK_JWT_ISSUER
         sync: false
       - key: CORS_ORIGINS
-        value: https://nanobana.vercel.app
+        value: https://nanoui-snsk.vercel.app
       - key: LOG_LEVEL
         value: INFO
       - key: WATCHLIST_TICKERS
