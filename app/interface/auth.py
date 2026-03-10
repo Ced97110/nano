@@ -210,6 +210,11 @@ async def _verify_clerk_token(token: str) -> AuthUser:
     # Also check top-level "role" claim (for custom JWT templates)
     elif "role" in payload:
         role_str = payload["role"]
+    # Also check nested metadata claim (Clerk custom session tokens)
+    elif "metadata" in payload:
+        meta = payload["metadata"]
+        if isinstance(meta, dict) and "role" in meta:
+            role_str = meta["role"]
 
     try:
         role = Role(role_str)
