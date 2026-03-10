@@ -18,20 +18,42 @@ logger = structlog.get_logger(__name__)
 class ChromaDocumentStore(DocumentStore):
     """ChromaDB-backed vector store for RAG retrieval.
 
+    Supports two modes:
+      - Cloud: api_key set → uses chromadb.CloudClient (hosted)
+      - Local: no api_key → uses chromadb.PersistentClient (filesystem)
+
     Lazy initialization — chromadb is only imported and the client
     created on first use, avoiding a 10-30s blocking import at startup.
     """
 
-    def __init__(self, persist_directory: str = "./chroma_data") -> None:
+    def __init__(
+        self,
+        persist_directory: str = "./chroma_data",
+        api_key: str = "",
+        tenant: str = "",
+        database: str = "",
+    ) -> None:
         self._persist_directory = persist_directory
+        self._api_key = api_key
+        self._tenant = tenant
+        self._database = database
         self._client = None
         self._executor = ThreadPoolExecutor(max_workers=2)
 
     def _get_client(self):
         if self._client is None:
             import chromadb
-            self._client = chromadb.PersistentClient(path=self._persist_directory)
-            logger.info("chroma.client.initialized")
+            if self._api_key:
+                kwargs = {"api_key": self._api_key}
+                if self._tenant:
+                    kwargs["tenant"] = self._tenant
+                if self._database:
+                    kwargs["database"] = self._database
+                self._client = chromadb.CloudClient(**kwargs)
+                logger.info("chroma.client.cloud.initialized")
+            else:
+                self._client = chromadb.PersistentClient(path=self._persist_directory)
+                logger.info("chroma.client.local.initialized")
         return self._client
 
     def _get_collection(self, name: str):

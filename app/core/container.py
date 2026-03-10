@@ -122,8 +122,13 @@ class Container:
         else:
             self.company_data = None
 
-        # ── ChromaDB document store (RAG) ──
-        doc_store = ChromaDocumentStore(persist_directory="./chroma_data")
+        # ── ChromaDB document store (RAG — Cloud if api_key set, else local) ──
+        doc_store = ChromaDocumentStore(
+            persist_directory="./chroma_data",
+            api_key=settings.chroma_api_key,
+            tenant=settings.chroma_tenant,
+            database=settings.chroma_database,
+        )
         self.rag = RAGService(doc_store, filings_repo)
 
         # ── Data Ingestion Service ──

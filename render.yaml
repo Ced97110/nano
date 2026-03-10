@@ -16,6 +16,12 @@ services:
         value: openai
       - key: LLM_MODEL
         value: glm-4.7
+      - key: CHROMA_API_KEY
+        sync: false  # ChromaDB Cloud API key
+      - key: CHROMA_TENANT
+        sync: false  # ChromaDB Cloud tenant ID
+      - key: CHROMA_DATABASE
+        sync: false  # ChromaDB Cloud database name
       - key: TAVILY_API_KEY
         sync: false
       - key: CLERK_PUBLISHABLE_KEY

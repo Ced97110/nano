@@ -14,8 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app code
 COPY . .
 
-# ChromaDB persistent storage
-RUN mkdir -p /app/chroma_data
 
 EXPOSE 8000
 

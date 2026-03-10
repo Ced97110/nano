@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     # ChromaDB Cloud
     chroma_api_key: str = ""  # ChromaDB Cloud API key
+    chroma_tenant: str = ""   # ChromaDB Cloud tenant ID
+    chroma_database: str = "" # ChromaDB Cloud database name
 
     # Web search (Tavily)
     tavily_api_key: str = ""  # Set to enable web search; empty = search disabled
