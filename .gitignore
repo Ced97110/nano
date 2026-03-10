@@ -1,0 +1,26 @@
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.nano/
+
+# ChromaDB local data
+chroma_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
