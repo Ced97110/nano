@@ -223,8 +223,10 @@ class _NullEvents:
         pass
 
     async def subscribe(self, channel_id):
-        return
-        yield  # make it an async generator
+        async def _empty():
+            return
+            yield  # make it an async generator
+        return _empty()
 
     async def wait_for_input(self, channel_id: str, timeout: float = 300) -> dict | None:
         """No-op HITL wait — returns None immediately (auto-approve)."""

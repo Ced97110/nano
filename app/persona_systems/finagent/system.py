@@ -375,6 +375,21 @@ class FinAgentPro(BasePersonaSystem):
             self._graph_cache[analysis_type] = self._compile_graph()
         self._compiled_graph = self._graph_cache[analysis_type]
 
+        # ── AG-UI: RUN_STARTED (via injected publisher) ──
+        # Published BEFORE cache check so the frontend always receives it,
+        # regardless of whether the pipeline runs fully or returns cached.
+        active_agents = self._get_active_agents()
+        waves = self._compute_waves()
+        if request_id:
+            await self._events.publish(request_id, {
+                "type": "RUN_STARTED",
+                "runId": request_id,
+                "threadId": self.system_id,
+                "total_agents": len(active_agents),
+                "waves": len(waves),
+                "analysis_type": analysis_type,
+            })
+
         # ── Pipeline cache (via injected repository) ──
         cache_key_suffix = f":{analysis_type}" if analysis_type != "full" else ""
         try:
@@ -398,19 +413,6 @@ class FinAgentPro(BasePersonaSystem):
         if ingestion_svc:
             import asyncio
             asyncio.create_task(ingestion_svc.ingest_ticker_background(entity))
-
-        # ── AG-UI: RUN_STARTED (via injected publisher) ──
-        active_agents = self._get_active_agents()
-        waves = self._compute_waves()
-        if request_id:
-            await self._events.publish(request_id, {
-                "type": "RUN_STARTED",
-                "runId": request_id,
-                "threadId": self.system_id,
-                "total_agents": len(active_agents),
-                "waves": len(waves),
-                "analysis_type": analysis_type,
-            })
 
         # ── Audit: run_started ──
         if self._audit_store and request_id:

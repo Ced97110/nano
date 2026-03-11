@@ -24,16 +24,25 @@ class RedisEventPublisher(EventPublisher):
         await self._redis.publish(channel, json.dumps(event, default=str))
 
     async def subscribe(self, channel_id: str) -> AsyncIterator[dict]:
+        """Subscribe to a Redis pub/sub channel.
+
+        Establishes the subscription BEFORE returning, so no events
+        published after this call returns will be missed.
+        """
         pubsub = self._redis.pubsub()
         channel = f"analysis:{channel_id}"
         await pubsub.subscribe(channel)
-        try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    yield json.loads(message["data"])
-        finally:
-            await pubsub.unsubscribe(channel)
-            await pubsub.aclose()
+
+        async def _listen() -> AsyncIterator[dict]:
+            try:
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        yield json.loads(message["data"])
+            finally:
+                await pubsub.unsubscribe(channel)
+                await pubsub.aclose()
+
+        return _listen()
 
     async def wait_for_input(self, channel_id: str, timeout: float = 300) -> dict | None:
         """Block until human feedback arrives via RPUSH, or timeout.

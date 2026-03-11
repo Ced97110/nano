@@ -17,7 +17,13 @@ class EventPublisher(ABC):
     async def publish(self, channel_id: str, event: dict) -> None: ...
 
     @abstractmethod
-    def subscribe(self, channel_id: str) -> AsyncIterator[dict]: ...
+    async def subscribe(self, channel_id: str) -> AsyncIterator[dict]:
+        """Subscribe to a channel and return an async iterator of events.
+
+        IMPORTANT: The subscription MUST be established before this method
+        returns, so callers can safely start publishers after awaiting this.
+        """
+        ...
 
     async def wait_for_input(self, channel_id: str, timeout: float = 300) -> dict | None:
         """Block until human input arrives on HITL channel, or timeout.

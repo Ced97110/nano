@@ -36,6 +36,11 @@ class StreamAnalysisUseCase:
         system = self._orchestrator.get_system(analysis.persona_system)
 
         async def event_stream() -> AsyncIterator[str]:
+            # Subscribe FIRST — ensures Redis subscription is active before
+            # the pipeline publishes any events (fixes pub/sub race condition).
+            subscriber = await self._events.subscribe(request_id)
+            event_iter = subscriber.__aiter__()
+
             pipeline_task = asyncio.create_task(
                 system.run_pipeline(
                     request={
@@ -50,8 +55,6 @@ class StreamAnalysisUseCase:
 
             run_finished = False
             try:
-                subscriber = self._events.subscribe(request_id)
-                event_iter = subscriber.__aiter__()
 
                 while True:
                     # Wrap __anext__ in a task so we can race it against
