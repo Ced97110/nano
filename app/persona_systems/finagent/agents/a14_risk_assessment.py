@@ -141,7 +141,7 @@ Risk scores are 0-100: 0-25=STABLE, 25-50=WATCH, 50-75=ELEVATED, 75-100=CRITICAL
             context_parts.append(f"\n\nRecent risk-related developments from web:\n{web_risk_context}")
 
         messages = [{"role": "user", "content": f"Perform a comprehensive risk assessment across all dimensions. Score 0-100.\n\n{''.join(context_parts)}"}]
-        result = await self.call_llm(messages, max_tokens=2048)
+        result = await self.call_llm(messages)
         parsed = self.parse_json(result["content"])
         self.track_provenance("risk_assessment", entity, "llm", self.agent_id, confidence=0.85)
 
