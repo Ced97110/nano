@@ -20,6 +20,7 @@ Dependencies flow inward only:
 import structlog
 
 from app.domain.interfaces.audit_store import AuditEvent
+from app.persona_systems.audit.cost_monitor import BudgetExceededError, CostMonitor
 from app.persona_systems.audit.llm_audit import adversarial_review
 from app.persona_systems.base_system import BasePersonaSystem
 
@@ -432,7 +433,13 @@ class FinAgentPro(BasePersonaSystem):
             except Exception:
                 pass
 
-        # ── Execute LangGraph DAG ──
+        # ── Execute LangGraph DAG with budget enforcement ──
+        monitor = CostMonitor(
+            pipeline_id=request_id,
+            ticker=entity,
+            analysis_type=analysis_type,
+        )
+
         hitl_mode = request.get("mode", "express")
         initial_state = {
             "intent": intent,
@@ -442,9 +449,27 @@ class FinAgentPro(BasePersonaSystem):
             "request_id": request_id,
             "entity": entity,
             "hitl_mode": hitl_mode,
+            "cost_monitor": monitor,
         }
 
-        outputs, audit_log, cost_log = await self.execute_dag_with_audit(initial_state)
+        try:
+            outputs, audit_log, cost_log = await self.execute_dag_with_audit(initial_state)
+        except BudgetExceededError as exc:
+            logger.error("finagent.budget_exceeded", entity=entity, error=str(exc))
+            if request_id:
+                await self._events.publish(request_id, {
+                    "type": "RUN_ERROR",
+                    "runId": request_id,
+                    "error": str(exc),
+                })
+            report = monitor.generate_report()
+            return {
+                "type": "investment_dossier",
+                "title": f"FinAgent Pro Analysis: {entity} (ABORTED — budget exceeded)",
+                "entity": entity,
+                "error": str(exc),
+                "cost": report.to_dict(),
+            }
 
         # ── Layer 4: Adversarial review of final output ──
         all_warnings = []

@@ -17,6 +17,10 @@ from app.domain.interfaces.cache_repository import CacheRepository
 from app.domain.interfaces.event_publisher import EventPublisher
 from app.domain.interfaces.llm_gateway import LLMGateway
 from app.domain.interfaces.web_search import WebSearchGateway
+from app.persona_systems.audit.cost_monitor import (
+    BudgetExceededError,
+    CostMonitor,
+)
 from app.persona_systems.audit.schemas import validate_schema
 from app.persona_systems.audit.consistency import check_wave_consistency
 from app.persona_systems.audit.llm_audit import audit_agent_output, CRITICAL_AGENTS
@@ -66,6 +70,7 @@ class PipelineState(TypedDict):
     audit_log: Annotated[dict, _merge_dicts]
     cost_log: Annotated[dict, _merge_dicts]
     hitl_mode: str  # "express" | "analyst" | "review"
+    cost_monitor: CostMonitor | None  # budget enforcement (not merged)
 
 
 class BasePersonaSystem:
@@ -251,6 +256,20 @@ class BasePersonaSystem:
             result = {"audit_log": audit_entry}
             if audit_costs:
                 result["cost_log"] = audit_costs
+
+            # ── Budget enforcement via CostMonitor ──
+            monitor = state.get("cost_monitor")
+            if monitor:
+                cost_log = state.get("cost_log", {})
+                # Ingest cost data from agents that just completed
+                new_costs = {
+                    aid: cost_log[aid]
+                    for aid in wave_agent_ids
+                    if aid in cost_log
+                }
+                if new_costs:
+                    monitor.ingest_cost_log(new_costs)
+                monitor.check_budget()  # raises BudgetExceededError if over limit
 
             # ── HITL: Pause for analyst review if this wave is gated ──
             # OVERRIDE PROPAGATION (PRD §FR-03): Overrides merge into
@@ -462,6 +481,7 @@ class BasePersonaSystem:
         initial_state.setdefault("audit_log", {})
         initial_state.setdefault("cost_log", {})
         initial_state.setdefault("hitl_mode", "express")
+        initial_state.setdefault("cost_monitor", None)
 
         if self._compiled_graph is None:
             self._compiled_graph = self._compile_graph()
@@ -473,6 +493,7 @@ class BasePersonaSystem:
         initial_state.setdefault("audit_log", {})
         initial_state.setdefault("cost_log", {})
         initial_state.setdefault("hitl_mode", "express")
+        initial_state.setdefault("cost_monitor", None)
 
         if self._compiled_graph is None:
             self._compiled_graph = self._compile_graph()
