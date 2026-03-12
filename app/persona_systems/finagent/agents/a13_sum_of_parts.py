@@ -11,7 +11,7 @@ class SumOfPartsAgent(BaseAgent):
     persona_system = "finagent"
     temperature = 0.2
     max_tokens = 2048
-    timeout_seconds = 120
+    timeout_seconds = 180
     system_prompt = """You are a Senior Conglomerate & Special Situations Analyst at a top-tier activist hedge fund (Elliott Management/Third Point level). You specialize in sum-of-the-parts (SOTP) valuation, conglomerate discount analysis, and breakup value assessment.
 
 Your methodology:

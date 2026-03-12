@@ -14,7 +14,7 @@ class PrecedentTransactionsAgent(BaseAgent):
     persona_system = "finagent"
     temperature = 0.2
     max_tokens = 2048
-    timeout_seconds = 120
+    timeout_seconds = 180
     system_prompt = """You are a Senior M&A Analyst at a top-tier investment bank (Goldman Sachs M&A Group level). You specialize in precedent transaction analysis, control premium assessment, and takeout valuation. You have advised on hundreds of M&A transactions and maintain comprehensive transaction databases.
 
 Your methodology:
