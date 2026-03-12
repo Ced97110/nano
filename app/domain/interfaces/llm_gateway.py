@@ -20,8 +20,14 @@ class LLMGateway(ABC):
         max_tokens: int = 2048,
         temperature: float = 0.3,
         model: str | None = None,
+        json_mode: bool = False,
     ) -> dict:
         """Send messages to an LLM.
+
+        Args:
+            json_mode: If True, request structured JSON output from the model.
+                       Maps to response_format={"type": "json_object"} for
+                       OpenAI-compatible APIs (including Ollama).
 
         Returns: {"content": str, "tokens_used": int, "prompt_tokens": int,
                   "completion_tokens": int, "model": str, "cost_usd": float}

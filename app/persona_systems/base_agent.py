@@ -49,6 +49,7 @@ class BaseAgent:
     temperature: float = 0.3
     max_tokens: int = 2048
     timeout_seconds: int = 120
+    json_mode: bool = False  # Set True for models that support response_format (not glm-4.7)
 
     def __init__(
         self,
@@ -240,6 +241,7 @@ class BaseAgent:
         messages: list[dict],
         max_tokens: int | None = None,
         temperature: float | None = None,
+        json_mode: bool | None = None,
     ) -> dict:
         """Call LLM using per-agent defaults for model, max_tokens, and temperature.
 
@@ -251,6 +253,7 @@ class BaseAgent:
             max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
             temperature=temperature if temperature is not None else self.temperature,
             model=self.model_override,
+            json_mode=json_mode if json_mode is not None else self.json_mode,
         )
 
     T = TypeVar("T", bound=BaseModel)
@@ -278,6 +281,36 @@ class BaseAgent:
             model=self.model_override,
             max_retries=max_retries,
         )
+
+    @staticmethod
+    def _repair_json(text: str) -> str:
+        """Fix common LLM JSON mistakes: trailing commas, single quotes, comments."""
+        # Remove single-line comments (// ...)
+        text = re.sub(r'//[^\n]*', '', text)
+        # Remove trailing commas before } or ]
+        text = re.sub(r',\s*([}\]])', r'\1', text)
+        # Replace single-quoted strings with double-quoted (simple heuristic)
+        # Only outside of already double-quoted strings
+        result = []
+        in_double = False
+        escape_next = False
+        for c in text:
+            if escape_next:
+                result.append(c)
+                escape_next = False
+                continue
+            if c == '\\':
+                escape_next = True
+                result.append(c)
+                continue
+            if c == '"':
+                in_double = not in_double
+                result.append(c)
+            elif c == "'" and not in_double:
+                result.append('"')
+            else:
+                result.append(c)
+        return ''.join(result)
 
     @staticmethod
     def parse_json(text: str) -> dict | list | Any:
@@ -321,10 +354,23 @@ class BaseAgent:
                         end = i
                         break
             if end > start:
+                candidate = cleaned[start : end + 1]
                 try:
-                    return json.loads(cleaned[start : end + 1])
+                    return json.loads(candidate)
                 except json.JSONDecodeError:
-                    pass
+                    # Try repairing common LLM JSON mistakes
+                    try:
+                        repaired = BaseAgent._repair_json(candidate)
+                        return json.loads(repaired)
+                    except json.JSONDecodeError:
+                        pass
+
+        # Last resort: try repairing the entire cleaned text
+        try:
+            repaired = BaseAgent._repair_json(cleaned)
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            pass
 
         return {"raw": text}
 

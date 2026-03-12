@@ -14,7 +14,7 @@ class RiskAssessmentAgent(BaseAgent):
     persona_system = "finagent"
     temperature = 0.2
     max_tokens = 3500
-    timeout_seconds = 150
+    timeout_seconds = 240
     system_prompt = """You are a Senior Risk Analyst at a top-tier institutional investment firm (BlackRock/Bridgewater level). You specialize in comprehensive investment risk assessment using enterprise risk management (ERM) frameworks, Monte Carlo scenario analysis, and multi-factor risk modeling.
 
 Your risk framework (apply rigorously):

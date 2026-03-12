@@ -100,14 +100,39 @@ class StreamAnalysisUseCase:
                 pipeline_task.cancel()
                 raise
 
-            if not run_finished and not pipeline_task.done():
-                result = await pipeline_task
-            elif pipeline_task.done() and pipeline_task.exception() is None:
-                result = pipeline_task.result()
-            else:
-                # Pipeline raised — error event already yielded above.
+            # ── Collect the pipeline result and yield RESULT event ──
+            try:
+                if not pipeline_task.done():
+                    # Pipeline published RUN_FINISHED but hasn't returned yet
+                    # (still doing audit logging). Give it 30s max.
+                    result = await asyncio.wait_for(pipeline_task, timeout=30)
+                elif pipeline_task.exception() is None:
+                    result = pipeline_task.result()
+                else:
+                    # Pipeline raised — error event already yielded above.
+                    return
+            except Exception as exc:
+                logger.error(
+                    "Failed to collect pipeline result: %s",
+                    exc,
+                    exc_info=exc,
+                )
+                yield f"data: {json.dumps({'type': 'RUN_ERROR', 'error': f'Pipeline result error: {exc}'}, default=str)}\n\n"
                 return
 
-            yield f"data: {json.dumps({'type': 'RESULT', 'data': result}, default=str)}\n\n"
+            try:
+                payload = json.dumps(
+                    {"type": "RESULT", "data": result}, default=str
+                )
+            except Exception as exc:
+                logger.error(
+                    "Failed to serialize pipeline result: %s",
+                    exc,
+                    exc_info=exc,
+                )
+                yield f"data: {json.dumps({'type': 'RUN_ERROR', 'error': f'Serialization error: {exc}'}, default=str)}\n\n"
+                return
+
+            yield f"data: {payload}\n\n"
 
         return request_id, event_stream()

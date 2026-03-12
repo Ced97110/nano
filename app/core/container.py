@@ -58,6 +58,7 @@ class Container:
         from app.core.orchestrator import Orchestrator
         from app.infrastructure.data.sec_edgar_repository import SECEdgarRepository
         from app.infrastructure.data.yfinance_repository import YFinanceRepository
+        from app.infrastructure.llm.anthropic_gateway import AnthropicGateway
         from app.infrastructure.llm.openai_gateway import OpenAIGateway
         from app.infrastructure.messaging.redis_event_publisher import RedisEventPublisher
         from app.infrastructure.persistence.chroma_document_store import ChromaDocumentStore
@@ -66,12 +67,21 @@ class Container:
         from app.infrastructure.persistence.redis_cache_repository import RedisCacheRepository
         from app.infrastructure.web.null_search import NullSearchGateway
 
-        # ── LLM adapter (OpenAI-compatible — works with OpenAI, Ollama, etc.) ──
-        self.llm = OpenAIGateway(
-            default_model=settings.llm_model,
-            default_max_tokens=settings.llm_max_tokens,
-            base_url=settings.openai_base_url or None,
-        )
+        # ── LLM adapter ──
+        if settings.llm_provider == "anthropic" and settings.anthropic_api_key:
+            self.llm = AnthropicGateway(
+                api_key=settings.anthropic_api_key,
+                default_model=settings.llm_model,
+                default_max_tokens=settings.llm_max_tokens,
+            )
+            logger.info("container.llm.anthropic", model=settings.llm_model)
+        else:
+            self.llm = OpenAIGateway(
+                default_model=settings.llm_model,
+                default_max_tokens=settings.llm_max_tokens,
+                base_url=settings.openai_base_url or None,
+            )
+            logger.info("container.llm.openai", model=settings.llm_model)
 
         # ── Redis ──
         try:

@@ -21,7 +21,7 @@ class OperatingModelAgent(BaseAgent):
     persona_system = "finagent"
     temperature = 0.2
     max_tokens = 3500
-    timeout_seconds = 150
+    timeout_seconds = 240
     system_prompt = """You are a Senior Financial Modeler at a top-tier investment bank with deep expertise
 in building granular operating models, scenario analysis, and unit economics.
 

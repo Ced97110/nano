@@ -82,6 +82,7 @@ class OpenAIGateway(LLMGateway):
 
     async def _call_api(
         self, model: str, messages: list[dict], max_tokens: int, temperature: float,
+        json_mode: bool = False,
     ) -> dict:
         session = await self._get_session()
         payload = {
@@ -90,6 +91,8 @@ class OpenAIGateway(LLMGateway):
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
         async with session.post(self._chat_url, json=payload) as resp:
             if resp.status != 200:
                 body = await resp.text()
@@ -103,6 +106,7 @@ class OpenAIGateway(LLMGateway):
         max_tokens: int = 2048,
         temperature: float = 0.3,
         model: str | None = None,
+        json_mode: bool = False,
     ) -> dict:
         target_model = model or self._default_model
 
@@ -114,13 +118,13 @@ class OpenAIGateway(LLMGateway):
         input_tokens = self._count_tokens(api_messages)
 
         try:
-            data = await self._call_api(target_model, api_messages, max_tokens, temperature)
+            data = await self._call_api(target_model, api_messages, max_tokens, temperature, json_mode=json_mode)
         except Exception as exc:
             if self._fallback_models:
                 for fallback in self._fallback_models:
                     try:
                         logger.warning("openai.fallback", primary=target_model, fallback=fallback, error=str(exc))
-                        data = await self._call_api(fallback, api_messages, max_tokens, temperature)
+                        data = await self._call_api(fallback, api_messages, max_tokens, temperature, json_mode=json_mode)
                         target_model = fallback
                         break
                     except Exception:

@@ -11,7 +11,7 @@ class CompsAgent(BaseAgent):
     persona_system = "finagent"
     temperature = 0.2
     max_tokens = 3000
-    timeout_seconds = 180
+    timeout_seconds = 240
     system_prompt = """You are a Senior Comparable Companies Analyst at a top-tier investment bank (Evercore/Centerview level). You specialize in peer group selection, trading multiples analysis, and relative valuation. You build the comps tables that drive pricing for IPOs, M&A transactions, and equity research coverage.
 
 Your methodology:
